@@ -1,6 +1,22 @@
 import { useState, useEffect } from "react";
 
-const WA_NUMBER = "8617815651586"; // no + sign for wa.me links
+const WA_NUMBER = "8617815651586";
+
+const CATEGORY_IMAGES = {
+  Crocs:    "https://cdn.shopify.com/s/files/1/0538/1512/8214/files/Classic_Clog_White_1.jpg?v=1680000000",
+  iPhones:  "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-pro-max-naturaltitanium-select?wid=470&hei=556&fmt=png-alpha&.v=1692846995739",
+  Android:  "https://images.samsung.com/is/image/samsung/p6pim/levant/2401/gallery/levant-galaxy-s24-ultra-s928-sm-s928bzaceub-thumb-539672880",
+  Baby:     "https://m.media-amazon.com/images/I/71Q5P5JQIQL._AC_SX569_.jpg",
+  Handbags: "https://images.coach.com/is/image/Coach/cn069_b4nq4_a0?$desktopProduct$",
+};
+
+const FALLBACK_IMAGES = {
+  Crocs:    "https://www.crocs.com/dw/image/v2/BCZC_PRD/on/demandware.static/-/Sites-crocs-master/default/dw2d5e4db3/10001/10001-100-l1.jpg",
+  iPhones:  "https://images.macrumors.com/t/8KhcNE2Hc_Vs1tgZjO0BrG_rWMU=/1600x0/article-new/2023/09/iPhone-15-Pro-Max-Back-Camera-Feature.jpg",
+  Android:  "https://image-us.samsung.com/SamsungUS/home/mobile/galaxy/all-galaxy/04042024/KV_Galaxy_S24_Ultra_2x.jpg",
+  Baby:     "https://m.media-amazon.com/images/I/81h7HuOVCVL._AC_SX569_.jpg",
+  Handbags: "https://images.coach.com/is/image/Coach/cc126_b4nq4_a0?$desktopProduct$",
+};
 
 const BASE_PRODUCTS = [
   { id:1,  name:"Crocs Classic Clog",       category:"Crocs",    basePrice:35,  tag:"Popular",   condition:null,         desc:"Iconic comfort clogs, multiple sizes & colours available." },
@@ -30,7 +46,6 @@ const CURRENCIES = {
 };
 const DEFAULT_RATES = { USD:1, ZAR:18.5, ZMW:27.2, BWP:13.8 };
 
-// ── Helpers ──────────────────────────────────────────────────────────
 const waLink = (product, priceStr) => {
   const msg = encodeURIComponent(
     `Hi Mageba Imports! 👋\n\nI'd like to order:\n\n🛍️ *${product.name}*\n💰 Price: ${priceStr}\n${product.condition ? `📦 Condition: ${product.condition}\n` : ""}\nPlease let me know availability and delivery details. Thank you!`
@@ -47,8 +62,11 @@ const waCartLink = (cart, fmt) => {
   return `https://wa.me/${WA_NUMBER}?text=${msg}`;
 };
 
-// ── Product Visual ───────────────────────────────────────────────────
-const ProductVisual = ({ category }) => {
+// ── Product Image Component ──────────────────────────────────────────
+const ProductImage = ({ category }) => {
+  const [src, setSrc] = useState(CATEGORY_IMAGES[category]);
+  const [loaded, setLoaded] = useState(false);
+
   const palettes = {
     Crocs:    { bg:"#2A3520", acc:"#7A9A5A" },
     iPhones:  { bg:"#1E2030", acc:"#6A7AAA" },
@@ -57,16 +75,45 @@ const ProductVisual = ({ category }) => {
     Handbags: { bg:"#2C2015", acc:"#AA8A5A" },
   };
   const p = palettes[category] || { bg:"#252020", acc:"#8A7A6A" };
-  const icon = catIcons[category] || "✦";
+
   return (
-    <svg width="100%" height="100%" viewBox="0 0 280 300" xmlns="http://www.w3.org/2000/svg">
-      <rect width="280" height="300" fill={p.bg}/>
-      <rect x="30" y="30" width="220" height="240" rx="2" fill="none" stroke={p.acc} strokeWidth="0.8" opacity="0.3"/>
-      <circle cx="140" cy="148" r="60" fill={p.acc} opacity="0.07"/>
-      <circle cx="140" cy="148" r="40" fill="none" stroke={p.acc} strokeWidth="0.6" opacity="0.3"/>
-      <text x="140" y="162" textAnchor="middle" fontSize="36" opacity="0.65">{icon}</text>
-      <text x="140" y="260" textAnchor="middle" fill={p.acc} fontSize="8" fontFamily="sans-serif" letterSpacing="3" opacity="0.5">{category.toUpperCase()}</text>
-    </svg>
+    <div style={{ width:"100%", height:"100%", position:"relative", background:p.bg }}>
+      {/* Placeholder shown while loading */}
+      {!loaded && (
+        <div style={{
+          position:"absolute", inset:0,
+          display:"flex", alignItems:"center", justifyContent:"center",
+          background:p.bg,
+        }}>
+          <div style={{
+            width:"40px", height:"40px",
+            border:`2px solid ${p.acc}`,
+            borderTopColor:"transparent",
+            borderRadius:"50%",
+            animation:"spin 0.8s linear infinite",
+          }}/>
+        </div>
+      )}
+      <img
+        src={src}
+        alt={category}
+        onLoad={() => setLoaded(true)}
+        onError={() => {
+          if (src !== FALLBACK_IMAGES[category]) {
+            setSrc(FALLBACK_IMAGES[category]);
+          }
+        }}
+        style={{
+          width:"100%",
+          height:"100%",
+          objectFit:"cover",
+          objectPosition:"center",
+          display:"block",
+          opacity: loaded ? 1 : 0,
+          transition:"opacity 0.4s ease, transform 0.6s ease",
+        }}
+      />
+    </div>
   );
 };
 
@@ -110,7 +157,10 @@ const AdminPanel = ({ rates, onUpdateRates, onClose }) => {
       </div>
     </div>
   );
-};export default function MagebaImports() {
+};
+
+// ── MAIN ─────────────────────────────────────────────────────────────
+export default function MagebaImports() {
   const [activeCat, setActiveCat]     = useState("All");
   const [currency, setCurrency]       = useState("USD");
   const [rates, setRates]             = useState(DEFAULT_RATES);
@@ -122,6 +172,7 @@ const AdminPanel = ({ rates, onUpdateRates, onClose }) => {
   const [visible, setVisible]         = useState(false);
   const [mobileMenu, setMobileMenu]   = useState(false);
   const [isMobile, setIsMobile]       = useState(false);
+  const [addedId, setAddedId]         = useState(null);
   const ADMIN_PASSWORD = "mageba2024";
 
   useEffect(() => { setTimeout(()=>setVisible(true),120); }, []);
@@ -149,6 +200,8 @@ const AdminPanel = ({ rates, onUpdateRates, onClose }) => {
       if (ex) return c.map(i=>i.id===product.id?{...i,qty:i.qty+1}:i);
       return [...c,{...product,qty:1}];
     });
+    setAddedId(product.id);
+    setTimeout(() => setAddedId(null), 1200);
   };
   const removeFromCart = (id) => setCart(c=>c.filter(i=>i.id!==id));
   const tryAdmin = () => {
@@ -162,6 +215,9 @@ const AdminPanel = ({ rates, onUpdateRates, onClose }) => {
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Jost:wght@200;300;400&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
 
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes popIn { 0%{transform:scale(0.8);opacity:0} 60%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
+
         .hero-h{font-size:clamp(42px,8vw,108px);font-weight:300;line-height:.92;letter-spacing:-1px;opacity:0;transform:translateY(40px);transition:opacity .9s,transform .9s}
         .hero-h.vis{opacity:1;transform:none}
         .hero-sub{font-family:'Jost',sans-serif;font-weight:200;font-size:11px;letter-spacing:5px;text-transform:uppercase;color:#7A5C3E;opacity:0;transition:opacity 1.2s .4s}
@@ -170,16 +226,16 @@ const AdminPanel = ({ rates, onUpdateRates, onClose }) => {
         .pcard{cursor:pointer;transition:transform .4s}
         .pcard:hover{transform:translateY(-5px)}
         .pimg{overflow:hidden;background:#EAE5DF;position:relative;aspect-ratio:4/5}
-        .pimg svg{width:100%;height:100%;display:block;transition:transform .6s}
-        .pcard:hover .pimg svg{transform:scale(1.04)}
+        .pimg img{width:100%;height:100%;display:block;transition:transform .6s}
+        .pcard:hover .pimg img{transform:scale(1.06)}
 
-        /* Desktop: hover overlay. Mobile: always visible */
         .action-overlay{position:absolute;bottom:0;left:0;right:0;display:flex;flex-direction:column;gap:1px;opacity:0;transition:opacity .3s}
         .pcard:hover .action-overlay{opacity:1}
         @media(max-width:767px){.action-overlay{opacity:1 !important;position:relative;flex-direction:row}}
 
         .atc{font-family:'Jost',sans-serif;font-weight:300;font-size:10px;letter-spacing:2px;text-transform:uppercase;background:#1A1610;color:#F5F2EE;border:none;padding:11px 8px;cursor:pointer;flex:1;transition:background .3s}
         .atc:hover{background:#3A3020}
+        .atc.added{background:#4A7A3A !important;animation:popIn .3s ease}
         .wa-btn{font-family:'Jost',sans-serif;font-weight:300;font-size:10px;letter-spacing:2px;text-transform:uppercase;background:#25D366;color:#fff;border:none;padding:11px 8px;cursor:pointer;flex:1;transition:background .3s;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:5px}
         .wa-btn:hover{background:#1EB85A}
 
@@ -198,14 +254,13 @@ const AdminPanel = ({ rates, onUpdateRates, onClose }) => {
         .cart-panel{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:100vw;background:#FAF8F5;border-left:1px solid #DDD5C8;z-index:300;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .4s}
         .cart-panel.open{transform:none}
 
-        /* Floating WhatsApp button */
         .wa-float{position:fixed;bottom:24px;right:24px;z-index:200;background:#25D366;color:#fff;border:none;border-radius:50px;padding:14px 22px;font-family:'Jost',sans-serif;font-size:12px;font-weight:300;letter-spacing:2px;cursor:pointer;box-shadow:0 4px 20px rgba(37,211,102,0.4);display:flex;align-items:center;gap:8px;text-decoration:none;transition:transform .2s,box-shadow .2s}
         .wa-float:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(37,211,102,0.5)}
 
-        /* Mobile nav */
         .mob-menu{position:fixed;inset:0;background:#1A1610;z-index:250;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;transform:translateX(-100%);transition:transform .35s}
         .mob-menu.open{transform:none}
-        .mob-nav-lnk{font-family:'Jost',sans-serif;font-weight:200;font-size:18px;letter-spacing:6px;text-transform:uppercase;color:#C9B89A;cursor:pointer}/* Responsive grid */
+        .mob-nav-lnk{font-family:'Jost',sans-serif;font-weight:200;font-size:18px;letter-spacing:6px;text-transform:uppercase;color:#C9B89A;cursor:pointer}
+
         @media(max-width:767px){
           .hero-grid{grid-template-columns:1fr !important;min-height:auto !important}
           .hero-dark{display:none !important}
@@ -254,7 +309,8 @@ const AdminPanel = ({ rates, onUpdateRates, onClose }) => {
         ))}
         <span className="mob-nav-lnk" style={{ color:"#7A5C3E" }} onClick={()=>{setAdminPrompt(true);setMobileMenu(false);}}>Admin</span>
       </div>
-{/* Cart sidebar */}
+
+      {/* Cart sidebar */}
       <div className={`cart-panel ${showCart?"open":""}`}>
         <div style={{ padding:"22px 24px",borderBottom:"1px solid #DDD5C8",display:"flex",justifyContent:"space-between",alignItems:"center" }}>
           <div>
@@ -269,7 +325,7 @@ const AdminPanel = ({ rates, onUpdateRates, onClose }) => {
           ) : cart.map(item=>(
             <div key={item.id} style={{ display:"flex",gap:"14px",marginBottom:"20px",paddingBottom:"20px",borderBottom:"1px solid #EAE5DF" }}>
               <div style={{ width:"64px",height:"72px",background:"#EAE5DF",flexShrink:0,overflow:"hidden" }}>
-                <ProductVisual category={item.category}/>
+                <ProductImage category={item.category}/>
               </div>
               <div style={{ flex:1 }}>
                 <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"9px",letterSpacing:"2px",textTransform:"uppercase",color:"#9A8878",marginBottom:"3px" }}>{item.category}</p>
@@ -285,44 +341,40 @@ const AdminPanel = ({ rates, onUpdateRates, onClose }) => {
         {cart.length>0 && (
           <div style={{ padding:"20px 24px",borderTop:"1px solid #DDD5C8" }}>
             <div style={{ display:"flex",justifyContent:"space-between",marginBottom:"16px" }}>
-              <span style={{ fontFamily:"'Jost',sans-serif",fontSize:"11px",letterSpacing:"2px",textTransform:"uppercase",color:"#3A2E22" }}>Total</span>
+              <span style={{ fontFamily:"'Jost',sans-serif",fontSize:"11px",letterSpacing:"2px",textTransform:"uppercase",color:"#6B6058" }}>Total</span>
               <span style={{ fontSize:"20px",fontWeight:400 }}>{fmt(cartTotal)}</span>
             </div>
-            {/* WhatsApp checkout */}
             <a href={waCartLink(cart,fmt)} target="_blank" rel="noopener noreferrer"
               style={{ display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",width:"100%",background:"#25D366",color:"#fff",border:"none",padding:"15px",fontFamily:"'Jost',sans-serif",fontWeight:300,fontSize:"11px",letterSpacing:"3px",textTransform:"uppercase",cursor:"pointer",marginBottom:"10px" }}>
               <span>📲</span> Order via WhatsApp
             </a>
-            <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"10px",color:"#3A2E22",textAlign:"center",letterSpacing:"0.5px" }}>
+            <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"10px",color:"#9A8878",textAlign:"center",letterSpacing:"0.5px" }}>
               Sends your order list directly to our WhatsApp
             </p>
           </div>
         )}
       </div>
       {showCart && <div onClick={()=>setShowCart(false)} style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.3)",zIndex:299 }}/>}
-{/* Banner */}
+
+      {/* Banner */}
       <div className="banner">🚢 Shipping to 🇿🇦 SA &nbsp;·&nbsp; 🇿🇼 Zimbabwe &nbsp;·&nbsp; 🇿🇲 Zambia &nbsp;·&nbsp; 🇧🇼 Botswana</div>
 
       {/* Nav */}
       <nav style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:isMobile?"16px 20px":"22px 48px",borderBottom:"1px solid #DDD5C8",position:"sticky",top:0,background:"#F5F2EE",zIndex:100 }}>
-        {/* Desktop links */}
         <div className="desktop-nav-links" style={{ display:"none",gap:"28px",alignItems:"center" }}>
           {["Shop","About","Track Order"].map(l=>(
             <span key={l} style={{ fontFamily:"'Jost',sans-serif",fontWeight:300,fontSize:"11px",letterSpacing:"3px",textTransform:"uppercase",color:"#1A1610",cursor:"pointer" }}>{l}</span>
           ))}
         </div>
-        {/* Mobile hamburger */}
         <button className="mob-ham" onClick={()=>setMobileMenu(true)} style={{ background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",gap:"5px",padding:"4px" }}>
           {[0,1,2].map(i=><div key={i} style={{ width:"22px",height:"1.5px",background:"#1A1610" }}/>)}
         </button>
 
-        {/* Logo */}
         <div style={{ textAlign:"center" }}>
           <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:isMobile?"18px":"20px",fontWeight:300,letterSpacing:"8px",textTransform:"uppercase" }}>Mageba</div>
           <div style={{ fontFamily:"'Jost',sans-serif",fontSize:"7px",letterSpacing:"6px",color:"#7A5C3E",textTransform:"uppercase",marginTop:"1px" }}>Imports</div>
         </div>
 
-        {/* Right icons */}
         <div style={{ display:"flex",gap:"12px",alignItems:"center" }}>
           {!isMobile && (
             <button onClick={()=>setAdminPrompt(true)} style={{ fontFamily:"'Jost',sans-serif",fontSize:"9px",letterSpacing:"2px",textTransform:"uppercase",background:"none",border:"1px solid #DDD5C8",color:"#9A8878",padding:"5px 10px",cursor:"pointer" }}>Admin</button>
@@ -345,7 +397,7 @@ const AdminPanel = ({ rates, onUpdateRates, onClose }) => {
             <em style={{ fontStyle:"italic",color:"#7A5C3E" }}>makes</em><br/>
             it easy.
           </h1>
-          <p style={{ fontFamily:"'Jost',sans-serif",fontWeight:300,fontSize:"13px",lineHeight:1.85,color:"#3A2E22",maxWidth:"340px",opacity:visible?1:0,transition:"opacity 1s ease .7s" }}>
+          <p style={{ fontFamily:"'Jost',sans-serif",fontWeight:200,fontSize:"13px",lineHeight:1.85,color:"#6B6058",maxWidth:"340px",opacity:visible?1:0,transition:"opacity 1s ease .7s" }}>
             Premium imports — iPhones, Crocs, designer handbags, baby clothing & more — shipped straight from China to your door across Southern Africa.
           </p>
           <div style={{ display:"flex",gap:"16px",alignItems:"center",flexWrap:"wrap",opacity:visible?1:0,transition:"opacity 1s ease .9s" }}>
@@ -361,22 +413,26 @@ const AdminPanel = ({ rates, onUpdateRates, onClose }) => {
           </div>
         </div>
         <div className="hero-dark" style={{ background:"#2C2420",position:"relative",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden" }}>
-          <svg width="100%" height="100%" viewBox="0 0 600 680" style={{ position:"absolute",inset:0 }}>
-            <rect width="600" height="680" fill="#2C2420"/>
-            <rect x="60" y="60" width="480" height="560" fill="none" stroke="#8B6F5E" strokeWidth="1" opacity="0.2"/>
-            <circle cx="300" cy="340" r="160" fill="none" stroke="#7A5C3E" strokeWidth="0.6" opacity="0.3"/>
-            <circle cx="300" cy="340" r="110" fill="#3A2E28" opacity="0.4"/>
-            {[0,60,120,180,240,300].map(a=>(
-              <line key={a} x1={300+200*Math.cos(a*Math.PI/180)} y1={340+200*Math.sin(a*Math.PI/180)} x2={300-200*Math.cos(a*Math.PI/180)} y2={340-200*Math.sin(a*Math.PI/180)} stroke="#7A5C3E" strokeWidth="0.3" opacity="0.12"/>
+          {/* Hero collage of product images */}
+          <div style={{ position:"absolute",inset:0,display:"grid",gridTemplateColumns:"1fr 1fr",gridTemplateRows:"1fr 1fr",gap:"2px",opacity:0.55 }}>
+            {["iPhones","Handbags","Crocs","Baby"].map(cat=>(
+              <div key={cat} style={{ overflow:"hidden",position:"relative" }}>
+                <ProductImage category={cat}/>
+              </div>
             ))}
-            <text x="300" y="322" textAnchor="middle" fill="#C9B89A" fontSize="52" fontFamily="'Cormorant Garamond',serif" fontWeight="300" opacity="0.9">M</text>
-            <text x="300" y="372" textAnchor="middle" fill="#8B6F5E" fontSize="9" fontFamily="'Jost',sans-serif" fontWeight="200" letterSpacing="8" opacity="0.7">IMPORTS</text>
-            <text x="300" y="412" textAnchor="middle" fill="#6B5040" fontSize="8" fontFamily="'Jost',sans-serif" letterSpacing="4" opacity="0.5">SINCE 2024</text>
-          </svg>
-          <div style={{ position:"absolute",bottom:"32px",left:"32px",fontFamily:"'Jost',sans-serif",fontSize:"9px",letterSpacing:"3px",textTransform:"uppercase",color:"#C9B89A" }}>🇨🇳 Sourced in China</div>
-          <div style={{ position:"absolute",bottom:"32px",right:"32px",fontFamily:"'Jost',sans-serif",fontSize:"9px",letterSpacing:"3px",textTransform:"uppercase",color:"#C9B89A",textAlign:"right" }}>Delivered to<br/>Southern Africa</div>
+          </div>
+          {/* Overlay branding */}
+          <div style={{ position:"relative",zIndex:2,textAlign:"center",background:"rgba(44,36,32,0.6)",padding:"32px 40px",backdropFilter:"blur(2px)" }}>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"56px",fontWeight:300,color:"#C9B89A",lineHeight:1,marginBottom:"8px" }}>M</div>
+            <div style={{ fontFamily:"'Jost',sans-serif",fontSize:"9px",letterSpacing:"8px",color:"#8B6F5E",textTransform:"uppercase",marginBottom:"4px" }}>IMPORTS</div>
+            <div style={{ fontFamily:"'Jost',sans-serif",fontSize:"8px",letterSpacing:"4px",color:"#6B5040",opacity:0.7 }}>SINCE 2024</div>
+          </div>
+          <div style={{ position:"absolute",bottom:"32px",left:"32px",fontFamily:"'Jost',sans-serif",fontSize:"9px",letterSpacing:"3px",textTransform:"uppercase",color:"#8B6F5E",zIndex:2 }}>🇨🇳 Sourced in China</div>
+          <div style={{ position:"absolute",bottom:"32px",right:"32px",fontFamily:"'Jost',sans-serif",fontSize:"9px",letterSpacing:"3px",textTransform:"uppercase",color:"#8B6F5E",textAlign:"right",zIndex:2 }}>Delivered to<br/>Southern Africa</div>
         </div>
-      </section>{/* Filter bar */}
+      </section>
+
+      {/* Filter bar */}
       <div className="filter-bar" style={{ borderTop:"1px solid #DDD5C8",borderBottom:"1px solid #DDD5C8",background:"#FAF8F5",padding:"10px 48px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:"12px" }}>
         <div className="filter-scroll" style={{ display:"flex",gap:"4px" }}>
           {CATEGORIES.map(c=>(
@@ -407,23 +463,28 @@ const AdminPanel = ({ rates, onUpdateRates, onClose }) => {
           {filtered.map((product)=>(
             <div key={product.id} className="pcard">
               <div className="pimg">
-                <ProductVisual category={product.category}/>
+                <ProductImage category={product.category}/>
                 {product.tag && <span className="tag">{product.tag}</span>}
                 {product.condition && <span className="cond">{product.condition}</span>}
                 <div className="action-overlay">
-                  <button className="atc" onClick={e=>addToCart(e,product)}>🛒 Add</button>
+                  <button
+                    className={`atc${addedId===product.id?" added":""}`}
+                    onClick={e=>addToCart(e,product)}
+                  >
+                    {addedId===product.id ? "✓ Added!" : "🛒 Add"}
+                  </button>
                   <a className="wa-btn" href={waLink(product,fmt(product.basePrice))} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}>
                     📲 WhatsApp
                   </a>
                 </div>
               </div>
               <div style={{ padding:"12px 0 4px" }}>
-                <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"9px",letterSpacing:"3px",textTransform:"uppercase",color:"#7A5C3E",marginBottom:"4px" }}>{product.category}</p>
+                <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"9px",letterSpacing:"3px",textTransform:"uppercase",color:"#9A8878",marginBottom:"4px" }}>{product.category}</p>
                 <div style={{ display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:"4px" }}>
                   <h3 style={{ fontSize:"15px",fontWeight:400,flex:1,paddingRight:"8px" }}>{product.name}</h3>
-                  <span style={{ fontFamily:"'Jost',sans-serif",fontSize:"14px",fontWeight:400,color:"#1A1610",whiteSpace:"nowrap" }}>{fmt(product.basePrice)}</span>
+                  <span style={{ fontFamily:"'Jost',sans-serif",fontSize:"14px",fontWeight:300,color:"#4A3A2E",whiteSpace:"nowrap" }}>{fmt(product.basePrice)}</span>
                 </div>
-                <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"12px",fontWeight:300,color:"#3A2E22",lineHeight:1.7 }}>{product.desc}</p>
+                <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"11px",fontWeight:200,color:"#9A8878",lineHeight:1.6 }}>{product.desc}</p>
               </div>
             </div>
           ))}
@@ -442,7 +503,7 @@ const AdminPanel = ({ rates, onUpdateRates, onClose }) => {
             <div style={{ fontSize:"26px",marginBottom:"14px" }}>{item.icon}</div>
             <div style={{ width:"28px",height:"1px",background:"#7A5C3E",margin:"0 auto 14px" }}/>
             <h3 style={{ fontSize:"18px",fontWeight:300,color:"#F5F2EE",marginBottom:"8px" }}>{item.title}</h3>
-            <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"12px",fontWeight:300,lineHeight:1.9,color:"#C9B89A" }}>{item.body}</p>
+            <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"11px",fontWeight:200,lineHeight:1.9,color:"#9A8878" }}>{item.body}</p>
           </div>
         ))}
       </section>
@@ -453,7 +514,7 @@ const AdminPanel = ({ rates, onUpdateRates, onClose }) => {
           <div>
             <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"20px",fontWeight:300,letterSpacing:"6px",color:"#C9B89A",marginBottom:"3px" }}>MAGEBA</div>
             <div style={{ fontFamily:"'Jost',sans-serif",fontSize:"8px",letterSpacing:"5px",color:"#7A5C3E",marginBottom:"16px" }}>IMPORTS</div>
-            <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"11px",fontWeight:300,lineHeight:1.9,color:"#C9B89A",maxWidth:"220px",marginBottom:"20px" }}>
+            <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"11px",fontWeight:200,lineHeight:1.9,color:"#6B6058",maxWidth:"220px",marginBottom:"20px" }}>
               "Zulu makes it easy for you" — quality imports from China, delivered across Southern Africa.
             </p>
             <a href={`https://wa.me/${WA_NUMBER}`} target="_blank" rel="noopener noreferrer"
@@ -469,18 +530,19 @@ const AdminPanel = ({ rates, onUpdateRates, onClose }) => {
               <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"9px",letterSpacing:"3px",textTransform:"uppercase",color:"#C9B89A",marginBottom:"16px" }}>{col.title}</p>
               <div style={{ display:"flex",flexDirection:"column",gap:"10px" }}>
                 {col.links.map(l=>(
-                  <span key={l} style={{ fontFamily:"'Jost',sans-serif",fontWeight:300,fontSize:"10px",letterSpacing:"2px",textTransform:"uppercase",color:"#C9B89A",cursor:"pointer" }}>{l}</span>
+                  <span key={l} style={{ fontFamily:"'Jost',sans-serif",fontWeight:300,fontSize:"10px",letterSpacing:"2px",textTransform:"uppercase",color:"#6B6058",cursor:"pointer" }}>{l}</span>
                 ))}
               </div>
             </div>
           ))}
         </div>
         <div style={{ borderTop:"1px solid #2C2420",paddingTop:"18px",display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:"10px" }}>
-          <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"10px",color:"#9A8878" }}>© 2026 Mageba Imports. All rights reserved.</p>
-          <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"10px",color:"#9A8878" }}>🇨🇳 → 🇿🇦 🇿🇼 🇿🇲 🇧🇼</p>
+          <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"10px",color:"#4A3A2E" }}>© 2026 Mageba Imports. All rights reserved.</p>
+          <p style={{ fontFamily:"'Jost',sans-serif",fontSize:"10px",color:"#4A3A2E" }}>🇨🇳 → 🇿🇦 🇿🇼 🇿🇲 🇧🇼</p>
         </div>
       </footer>
-/* Floating WhatsApp button */}
+
+      {/* Floating WhatsApp button */}
       <a href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent("Hi Mageba Imports! I'd like to enquire about your products.")}`}
         target="_blank" rel="noopener noreferrer" className="wa-float">
         📲 <span style={{ display:isMobile?"none":"inline" }}>WhatsApp Us</span>
